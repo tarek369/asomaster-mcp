@@ -75,6 +75,14 @@ The app doesn't need to be open; the bridge starts it. Supported MCP protocol ve
 - Credentials are passed as file paths, stored in the OS keychain and never returned by a tool.
 - Local only: owner-only Unix socket on macOS, per-user named pipe with a token on Windows.
 
+## Linux build and Docker
+
+[Releases](https://github.com/tarek369/asomaster-mcp/releases) carry a static Linux build of the bridge
+and the [Dockerfile](Dockerfile) here runs it, so MCP directories can check that the server starts and
+lists its tools. ASOMaster itself runs on macOS and Windows; on Linux the bridge has no app to talk to,
+so every tool answers `app_unavailable`. The binary is distributed under the
+[ASOMaster terms](https://asomaster.app/terms/), not the MIT license that covers this repository's docs.
+
 ## Requirements
 
 ASOMaster with an active license (subscription: 15.99 EUR per month or 49 EUR per year). Without one,
