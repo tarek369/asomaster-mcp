@@ -1,0 +1,26 @@
+[package]
+name = "asomaster-mcp"
+description = "asomaster-mcp: MCP stdio server bridging AI agents to the running ASOMaster app"
+version = "0.1.7"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/tarek369/asomaster-mcp"
+homepage = "https://asomaster.app/docs/mcp/"
+publish = false
+
+[lib]
+name = "asomaster_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "asomaster-mcp"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+jsonschema = { version = "0.30", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"
