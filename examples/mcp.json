@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "asomaster": {
+      "type": "stdio",
+      "command": "/Applications/ASOMaster.app/Contents/MacOS/asomaster-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
