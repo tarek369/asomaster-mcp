@@ -119,16 +119,9 @@ pub fn tools() -> Vec<Tool> {
             READ_NET,
         ),
         Tool::custom(
-            "get_audit",
-            "App audit",
-            "Where the app stands, 0-100, per tracked market and overall (markets weighted by potential): rankings (share of searches its ranks would get, weighted by demand), listing (how much of the demand its name / subtitle / keyword field can catch), competition (how beatable the phrases it does not lead are), a verdict (strong / steady / needs_work), up to 6 takeaways per market (gap: high demand ranked low; uncovered: listing misses a phrase with demand; beatable: easy and not top 10; hold: top 3 to protect) and the daily total history. Demand is real popularity when connected (demandSource). Use it to pick the next optimizer or keyword step.",
-            s::object(vec![("projectId", s::project_id())], &["projectId"]),
-            READ,
-        ),
-        Tool::custom(
             "get_screenshots",
             "Screenshot designer state",
-            "The project's screenshot design: slides (heading in the main locale, image per device), theme, headings per locale, render status per locale/device/slot, and checks (errors block export and upload: missing images, headings over the limit, stale or missing translations, low text contrast). Edit headings with screenshots_write_headings / screenshots_translate; images, rendering, export and upload are done in the app.",
+            "The project's screenshot design: slides (heading in the main locale, image per device), theme, headings per locale, render status per locale/device/slot, and checks (errors block export and upload: missing images, headings over the limit, stale or missing translations, low text contrast). Write headings with screenshots_write_headings / screenshots_translate, change slides with screenshots_edit_slide / screenshots_set_theme, add images with screenshots_import_store / screenshots_add_image, then screenshots_render, screenshots_export and (with the owner's go-ahead) screenshots_upload.",
             s::object(vec![("projectId", s::project_id())], &["projectId"]),
             READ,
         ),
@@ -290,7 +283,6 @@ pub async fn run(bridge: &Bridge, name: &str, args: &Value) -> Option<Result<Val
                 .await
         }
         "get_volume_calibration" => bridge.call("volume_calibration", json!({})).await,
-        "get_audit" => bridge.call("get_audit", json!({ "projectId": args["projectId"] })).await,
         "list_rival_changes" => bridge.call("list_listing_changes", json!({})).await,
         "get_app_facts" => {
             bridge

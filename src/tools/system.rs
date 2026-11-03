@@ -135,12 +135,12 @@ pub fn tools() -> Vec<Tool> {
         ),
         Tool::custom(
             "export_data",
-            "Export board / history / optimizer",
-            "Export a project's board, rank history or optimizer drafts as CSV or JSON. By default returns the content (cut at maxChars); with saveToFile:true writes the file into the app's exports folder instead. format fastlane (what optimizer only) always writes a zip of fastlane deliver / supply metadata to the exports folder.",
+            "Export board / history / optimizer / audit",
+            "Export a project's board, rank history, optimizer drafts or audit as CSV or JSON. By default returns the content (cut at maxChars); with saveToFile:true writes the file into the app's exports folder instead. format fastlane (what optimizer only) always writes a zip of fastlane deliver / supply metadata to the exports folder.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
-                    ("what", s::enumeration(&["board", "history", "optimizer"], "What to export.")),
+                    ("what", s::enumeration(&["board", "history", "optimizer", "audit"], "What to export.")),
                     ("format", s::enumeration(&["csv", "json", "fastlane"], "File format.")),
                     ("saveToFile", s::boolean("Write to <dataDir>/exports instead of returning content.")),
                     ("maxChars", s::integer("Max characters of content to return (default 50000).", 100, 2_000_000)),

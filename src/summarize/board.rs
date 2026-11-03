@@ -225,6 +225,9 @@ pub fn board(b: &Value, opts: &BoardOpts) -> Value {
         "competitors": competitors,
         "legend": BOARD_LEGEND,
     });
+    if !arr(&b["avoid"]).is_empty() {
+        out["dontTarget"] = b["avoid"].clone();
+    }
     if !omitted.is_empty() {
         out["otherMarkets"] = json!(omitted);
         out["otherMarketsNote"] = json!("Pass markets:[...] to see these.");

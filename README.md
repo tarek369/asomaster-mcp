@@ -63,15 +63,22 @@ The app doesn't need to be open; the bridge starts it. Supported MCP protocol ve
   seed word (`add_keywords`, `edit_keyword`, `popular_searches`).
 - **Demand:** real popularity from Apple Ads or Google Ads Keyword Planner, kept separate from
   ASOMaster's own estimates (`connect_popularity`, `get_popularity_status`).
+- **Audit:** run the store listing audit per country, read the score, issues and competitors, and
+  dismiss competitors that don't fit (`run_audit`, `get_audit`, `dismiss_audit_competitor`).
 - **Listings:** draft, compare, choose and localize titles, subtitles, keyword fields and descriptions;
-  preview changes (`get_optimizer`, `get_publish_preview`).
+  run a final review after translating, undo edits, keep a don't-target list and preview changes
+  (`get_optimizer`, `optimizer_review`, `get_publish_preview`).
+- **Pricing:** read App Store and Google Play prices per country and plan new ones, with local price
+  suggestions (`get_pricing`, `plan_pricing`).
+- **Screenshots:** edit slides, import store screenshots, write and translate headings, render and
+  export a fastlane layout (`get_screenshots`, `screenshots_render`, `screenshots_export`).
 - **Jobs:** store searches and AI runs are queued; `wait_for_jobs` waits until they finish.
 
 ## Safety
 
-- Publishing to App Store Connect or Google Play needs your go-ahead twice: the agent must quote your
-  approval, and the app shows a native confirmation only you can answer. Nothing is submitted for review.
-- Screenshot uploads can only be started in the app.
+- Anything that changes a live store page (publishing a listing, prices, screenshots or a replacement
+  app name) needs your go-ahead twice: the agent must pass your explicit approval, and the app shows a
+  native confirmation only you can answer. Nothing is submitted for review.
 - Credentials are passed as file paths, stored in the OS keychain and never returned by a tool.
 - Local only: owner-only Unix socket on macOS, per-user named pipe with a token on Windows.
 

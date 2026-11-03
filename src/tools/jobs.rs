@@ -34,6 +34,22 @@ pub fn tools() -> Vec<Tool> {
             false,
         ),
         Tool::action(
+            "resume_job",
+            "Resume a job paused for AI usage",
+            "A job whose AI ran out of usage waits (aiPause in get_overview / wait_for_jobs) and resumes by itself at aiPause.resumesAt. This tries again now, on provider when given (switch AI; pay-per-use API providers can only be chosen in the app).",
+            s::object(
+                vec![
+                    ("jobId", s::id("Job id.")),
+                    ("provider", s::enumeration(&["claude_code", "codex", "opencode", "ollama", "gemini", "cursor", "grok", "antigravity"], "Continue on this AI (default: the same one).")),
+                ],
+                &["jobId"],
+            ),
+            SET,
+            "job.resume",
+            &[],
+            false,
+        ),
+        Tool::action(
             "clear_jobs",
             "Clear finished jobs",
             "Remove finished, failed and stopped jobs from the job list. Queued and running jobs are kept; their results (rankings, options, ...) are not affected.",

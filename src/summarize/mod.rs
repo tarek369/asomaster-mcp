@@ -81,6 +81,7 @@ pub fn job(j: &Value) -> Value {
             ("etaSeconds", "etaSeconds"),
             ("message", "message"),
             ("pausedUntil", "pausedUntil"),
+            ("aiPause", "aiPause"),
             ("error", "error"),
             ("finishedAt", "finishedAt"),
         ],

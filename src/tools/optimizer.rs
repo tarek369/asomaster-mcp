@@ -45,7 +45,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "screenshots_write_headings",
             "Write screenshot headings",
-            "Have the AI write the one-line heading printed on each screenshot slide, in the main locale (verb first, one benefit, at most 34 characters; 40 for scripts without case). Slides that already have a heading are kept unless overwrite is true or slideId names one slide. Background job; then read get_screenshots. Slides and images are set up in the app.",
+            "Have the AI write the one-line heading printed on each screenshot slide, in the main locale (verb first, one benefit, at most 34 characters; 40 for scripts without case). Slides that already have a heading are kept unless overwrite is true or slideId names one slide. When the AI can see images it looks at each slide's screenshot. Background job; then read get_screenshots.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
@@ -64,7 +64,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "screenshots_translate",
             "Translate screenshot headings",
-            "Adapt the main screenshot headings to the project's other languages (or only `locales`), reusing each language's own search words. Every slide needs a main heading first. Background job; then read get_screenshots (locales show translated / stale / missing). Rendering and upload happen in the app.",
+            "Adapt the main screenshot headings to the project's other languages (or only `locales`), reusing each language's own search words. Every slide needs a main heading first. Subheadings and notification texts are adapted too. Background job; then read get_screenshots (locales show translated / stale / missing).",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
@@ -220,6 +220,32 @@ pub fn tools() -> Vec<Tool> {
             false,
         ),
         Tool::action(
+            "optimizer_review",
+            "Final review of the listing",
+            "Review the localized listing: names and subtitles of every language against the approved main listing (wrong meaning, dropped topic, doubled word, wrong regional variant or script, stray English, over the limit), a rejection-risk scan of keyword fields and copy (vulgar words, other brands, medical claims, price/free words, missing features, wrong script, changed links) and rule checks. Fixes are applied most severe first when they fit; the rest are listed as looks. Runs by itself after optimizer_localize; get_optimizer shows review.changes / review.looks. Never blocks publishing. Background job.",
+            s::object(
+                vec![
+                    ("projectId", s::project_id()),
+                    ("parts", s::array(s::enumeration(&["names", "keywords", "copy"], "Part."), "Only these parts (default all).", 1, 3)),
+                ],
+                &["projectId"],
+            ),
+            WORK,
+            "optimizer.review",
+            &[],
+            true,
+        ),
+        Tool::action(
+            "optimizer_review_undo",
+            "Undo a review change",
+            "Put one final-review change back (changeId from get_optimizer review.changes).",
+            s::object(vec![("projectId", s::project_id()), ("changeId", s::id("Review change id."))], &["projectId", "changeId"]),
+            SET,
+            "optimizer.review.undo",
+            &[],
+            false,
+        ),
+        Tool::action(
             "optimizer_reset",
             "Reset optimizer",
             "Discard all options, the choice and every locale draft for the project.",
@@ -244,6 +270,22 @@ pub fn tools() -> Vec<Tool> {
             ),
             PUBLISH,
         ),
+        Tool::custom(
+            "upload_app_name",
+            "Upload a replacement name",
+            "DESTRUCTIVE / LIVE: App Store Connect refused a language's name because another app uses it (get_optimizer renames: locale, the refused name and up to 3 AI proposals; the rest of that language was already uploaded). Nothing is renamed automatically. Show the owner the proposals, let them pick or edit one, and only after they told you which name to use in this conversation call this with that exact name (≤ 30 characters). The app then asks the owner to confirm in a native dialog. Background job; a name that is taken too is reported (renames.tried) and the job fails with conflict. App Store only; never submits for review.",
+            s::object(
+                vec![
+                    ("projectId", s::project_id()),
+                    ("locale", s::locale("The language whose name was refused, e.g. \"de-DE\".")),
+                    ("name", s::text("The exact name the owner chose.", 1, 30)),
+                    ("ownerApproved", json!({ "const": true, "description": "Must be true: the owner chose this exact name." })),
+                    ("approval", s::text("Quote the owner's explicit go-ahead.", 3, 500)),
+                ],
+                &["projectId", "locale", "name", "ownerApproved", "approval"],
+            ),
+            PUBLISH,
+        ),
     ]
 }
 
@@ -251,6 +293,7 @@ pub async fn run(bridge: &Bridge, name: &str, args: &Value) -> Option<Result<Val
     let r = match name {
         "optimizer_save_option" => save_option(bridge, args).await,
         "publish_listing" => publish(bridge, args).await,
+        "upload_app_name" => upload_name(bridge, args).await,
         _ => return None,
     };
     Some(r)
@@ -300,6 +343,29 @@ async fn publish(bridge: &Bridge, args: &Value) -> Result<Value, BridgeError> {
     queued(
         bridge,
         "optimizer.publish",
+        args.get("projectId").and_then(Value::as_str),
+    )
+    .await
+}
+
+/// Same speed bump as [`publish`]: the engine asks the owner to confirm an
+/// `optimizer.name.upload` that arrives over IPC.
+async fn upload_name(bridge: &Bridge, args: &Value) -> Result<Value, BridgeError> {
+    if args["ownerApproved"] != json!(true) {
+        return Err(BridgeError::Invalid(
+            "uploading a name needs the owner's explicit choice (ownerApproved: true)".into(),
+        ));
+    }
+    let action = json!({
+        "type": "optimizer.name.upload",
+        "projectId": args["projectId"], "locale": args["locale"], "name": args["name"],
+    });
+    bridge
+        .call_with_timeout("dispatch", json!({ "action": action }), PUBLISH_CALL_TIMEOUT)
+        .await?;
+    queued(
+        bridge,
+        "optimizer.name.upload",
         args.get("projectId").and_then(Value::as_str),
     )
     .await

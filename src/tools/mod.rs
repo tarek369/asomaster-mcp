@@ -5,12 +5,15 @@
 //! camelCase fields. Reads and composite tools are `Exec::Custom` and are
 //! implemented in the group modules.
 
+mod audit;
 mod connections;
 mod jobs;
 mod keywords;
 mod optimizer;
+mod pricing;
 mod projects;
 mod read;
+mod screenshots;
 pub mod schema;
 mod system;
 
@@ -157,9 +160,12 @@ impl Registry {
     fn build() -> Self {
         let tools: Vec<Tool> = [
             read::tools(),
+            audit::tools(),
             projects::tools(),
             keywords::tools(),
             optimizer::tools(),
+            pricing::tools(),
+            screenshots::tools(),
             connections::tools(),
             system::tools(),
             jobs::tools(),
@@ -242,6 +248,9 @@ async fn run_custom(bridge: &Bridge, name: &str, args: &Value) -> Result<Value, 
     if let Some(r) = read::run(bridge, name, args).await {
         return r;
     }
+    if let Some(r) = audit::run(bridge, name, args).await {
+        return r;
+    }
     if let Some(r) = projects::run(bridge, name, args).await {
         return r;
     }
@@ -249,6 +258,12 @@ async fn run_custom(bridge: &Bridge, name: &str, args: &Value) -> Result<Value, 
         return r;
     }
     if let Some(r) = optimizer::run(bridge, name, args).await {
+        return r;
+    }
+    if let Some(r) = pricing::run(bridge, name, args).await {
+        return r;
+    }
+    if let Some(r) = screenshots::run(bridge, name, args).await {
         return r;
     }
     if let Some(r) = connections::run(bridge, name, args).await {

@@ -428,6 +428,30 @@ async fn publish_dispatches_only_with_approval() {
 }
 
 #[tokio::test]
+async fn a_replacement_name_is_uploaded_only_as_the_owner_chose_it() {
+    let app = FakeApp::start(default_reply).await;
+    let (is_error, _) = call_tool(
+        &app.server(),
+        "upload_app_name",
+        json!({"projectId":"1","locale":"de-DE","name":"Neu","ownerApproved":false,"approval":"no"}),
+    )
+    .await;
+    assert!(is_error);
+    assert!(app.calls.lock().unwrap().is_empty());
+    let (is_error, v) = call_tool(
+        &app.server(),
+        "upload_app_name",
+        json!({"projectId":"1","locale":"de-DE","name":"Neu Pro","ownerApproved":true,"approval":"Owner: use Neu Pro"}),
+    )
+    .await;
+    assert!(!is_error, "{v}");
+    assert_eq!(
+        &app.actions()[0],
+        &json!({"type":"optimizer.name.upload","projectId":"1","locale":"de-DE","name":"Neu Pro"})
+    );
+}
+
+#[tokio::test]
 async fn secrets_are_sent_to_the_app_but_never_returned() {
     let app = FakeApp::start(default_reply).await;
     let dir = app.downloads();
@@ -686,7 +710,10 @@ async fn rival_changes_come_from_the_app() {
 #[tokio::test]
 async fn get_audit_reads_from_the_app() {
     let app = FakeApp::start(|m, p| match m {
-        "get_audit" => Reply::Ok(json!({"total": 61, "projectId": p["projectId"], "markets": []})),
+        "get_audit" => Reply::Ok(json!({"total": 61, "projectId": p["projectId"], "mainCountry": "us", "countries": [
+            {"country": "us", "top10": [], "rankings": {"score": 50}},
+            {"country": "de", "top10": [], "rankings": {"score": 30}}
+        ]})),
         _ => default_reply(m, p),
     })
     .await;
@@ -694,6 +721,28 @@ async fn get_audit_reads_from_the_app() {
     assert!(!is_error, "{payload}");
     assert_eq!(payload["total"], 61);
     assert_eq!(payload["projectId"], "4");
+    assert!(payload["countries"][0]["top10"].is_array(), "main country in full");
+    assert_eq!(payload["countries"][1]["rankings"], 30, "others compact");
+}
+
+#[tokio::test]
+async fn run_audit_and_dismiss_dispatch_audit_actions() {
+    let app = FakeApp::start(default_reply).await;
+    let (is_error, payload) = call_tool(
+        &app.server(),
+        "run_audit",
+        json!({"projectId": "4", "options": {"countries": ["DE"], "recheck": true, "note": "focus on sleep"}}),
+    )
+    .await;
+    assert!(!is_error, "{payload}");
+    assert_eq!(payload["queued"], true);
+    let (is_error, payload) = call_tool(&app.server(), "dismiss_audit_competitor", json!({"projectId": "4", "appId": "42", "restore": true})).await;
+    assert!(!is_error, "{payload}");
+    assert_eq!(payload["action"], "audit.restore");
+    let sent = app.actions();
+    assert_eq!(sent[0]["type"], "audit.run");
+    assert_eq!(sent[0]["options"]["recheck"], true);
+    assert_eq!(sent[1], json!({"type": "audit.restore", "projectId": "4", "appId": "42"}));
 }
 
 #[tokio::test]
@@ -702,4 +751,50 @@ async fn link_released_app_dispatches_project_link() {
     let (is_error, payload) = call_tool(&app.server(), "link_released_app", json!({"projectId":"7","app":"123","kind":"mine"})).await;
     assert!(!is_error, "{payload}");
     assert_eq!(app.actions()[0], json!({"type":"project.link","id":"7","appIdOrUrl":"123","kind":"mine"}));
+}
+
+#[tokio::test]
+async fn pricing_tools_convert_prices_and_publish_only_with_approval() {
+    let app = FakeApp::start(|m, p| match m {
+        "get_pricing" => Reply::Ok(json!({
+            "status": "ok", "store": "apple", "baseCountry": "us", "plan": {"baseCents": {}},
+            "products": [{"id": "sub:1", "name": "Pro", "baseCents": 999, "rows": [
+                {"country": "in", "currentCents": 89_900, "proposedCents": 29_900, "changed": true}
+            ]}], "projectId": p["projectId"]
+        })),
+        _ => default_reply(m, p),
+    })
+    .await;
+    let server = app.server();
+    let (is_error, v) = call_tool(&server, "get_pricing", json!({"projectId": "1", "country": "IN"})).await;
+    assert!(!is_error, "{v}");
+    assert_eq!(v["products"][0]["rows"][0]["proposed"], 299.0);
+    assert!(app.actions().is_empty(), "reading never dispatches");
+
+    let (is_error, v) = call_tool(
+        &server,
+        "plan_pricing",
+        json!({"projectId": "1", "select": ["sub:1"], "override": {"productId": "sub:1", "country": "de", "price": 4.49}}),
+    )
+    .await;
+    assert!(!is_error, "{v}");
+    assert_eq!(
+        app.actions()[0],
+        json!({"type": "pricing.plan", "projectId": "1", "patch": {"selected": ["sub:1"], "overridePrice": {"productId": "sub:1", "country": "de", "cents": 449}}})
+    );
+
+    let (is_error, _) = call_tool(&server, "publish_pricing", json!({"projectId": "1", "ownerApproved": false, "approval": "no"})).await;
+    assert!(is_error);
+    assert_eq!(app.actions().len(), 1, "no publish without ownerApproved");
+    let (is_error, v) = call_tool(
+        &server,
+        "publish_pricing",
+        json!({"projectId": "1", "ownerApproved": true, "approval": "Owner: publish the new prices"}),
+    )
+    .await;
+    assert!(!is_error, "{v}");
+    assert_eq!(
+        app.actions()[1],
+        json!({"type": "pricing.publish", "projectId": "1", "approval": "Owner: publish the new prices"})
+    );
 }

@@ -123,6 +123,13 @@ pub fn optimizer(s: &Value, full: bool, locale: Option<&str>) -> Value {
     if let Some(r) = s["rationale"].as_str() {
         out["rationale"] = json!(truncate(r, RATIONALE_MAX));
     }
+    let review = &s["review"];
+    if !arr(&review["changes"]).is_empty() || !arr(&review["looks"]).is_empty() {
+        out["review"] = pick(review, &[("changes", "changes"), ("looks", "looks"), ("runs", "runs"), ("stale", "stale")]);
+    }
+    if !arr(&s["renames"]).is_empty() {
+        out["renames"] = s["renames"].clone();
+    }
     out["current"] = listing(&s["current"], full);
     out["options"] = json!(arr(&s["options"])
         .iter()

@@ -55,6 +55,24 @@ pub fn tools() -> Vec<Tool> {
             DESTRUCTIVE,
         ),
         Tool::action(
+            "dont_target",
+            "Don't target a phrase",
+            "Put a phrase on the project's \"don't target\" list (with an optional note, e.g. a rival's brand), or take it off with remove:true. Listed phrases are left out of every AI step (suggestions, listing options, localization, screenshot headings) and of drafts; a tracked keyword with that label is hidden. get_project_board lists them under dontTarget.",
+            s::object(
+                vec![
+                    ("projectId", s::project_id()),
+                    ("phrase", s::text("Search phrase.", 1, 200)),
+                    ("note", s::text("Why (optional).", 0, 500)),
+                    ("remove", s::boolean("true = take the phrase off the list.")),
+                ],
+                &["projectId", "phrase"],
+            ),
+            SET,
+            "keyword.avoid",
+            &[],
+            false,
+        ),
+        Tool::action(
             "localize_keyword",
             "Localize keyword",
             "Have the AI translate a keyword into the search language of each market (or the given markets), replacing non-overridden per-market phrases.",

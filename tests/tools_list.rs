@@ -47,8 +47,8 @@ fn assert_closed(name: &str, path: &str, schema: &Value) {
 fn catalogue_size_and_unique_valid_names() {
     let tools = tools_list();
     assert!(
-        (40..=70).contains(&tools.len()),
-        "expected ~40-70 tools, got {}",
+        (40..=100).contains(&tools.len()),
+        "expected ~40-100 tools, got {}",
         tools.len()
     );
     let mut names = HashSet::new();
