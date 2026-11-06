@@ -10,6 +10,9 @@ pub struct ApiError {
     pub message: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
+    /// Machine-readable fix (`add_package`: accountId, account, packageName).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub details: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -58,6 +61,10 @@ impl BridgeError {
 
     /// Structured payload returned to the agent as an `isError` tool result.
     pub fn to_tool_payload(&self) -> Value {
+        let details = match self {
+            Self::Api(e) => e.details.clone(),
+            _ => None,
+        };
         let (code, message, action) = match self {
             Self::Api(e) => (e.code.clone(), e.message.clone(), e.action.clone()),
             Self::Unavailable(m) => ("app_unavailable".into(), m.clone(), None),
@@ -75,12 +82,18 @@ impl BridgeError {
         if let Some(a) = action {
             err["action"] = Value::String(a);
         }
+        if let Some(d) = details {
+            err["details"] = d;
+        }
         json!({ "error": err, "hint": hint(&code, self) })
     }
 }
 
 /// What the agent should do next for a given error code.
 fn hint(code: &str, err: &BridgeError) -> &'static str {
+    if matches!(err, BridgeError::Api(e) if e.action.as_deref() == Some("add_package")) {
+        return "A Play Console account is connected but does not include this app's package. Call connect_console with store google, accountId and packageNames from error.details (no key needed).";
+    }
     match code {
         "license_required" => "ASOMaster needs an active license that includes MCP access. Ask the owner to activate it in the app (Settings > License); do not retry until they confirm.",
         "feature_not_licensed" => "The owner's license does not include this feature. Tell the owner; retrying will not help.",
@@ -112,6 +125,7 @@ mod tests {
             code: "license_required".into(),
             message: "not activated".into(),
             action: Some("activate".into()),
+            details: None,
         });
         let p = e.to_tool_payload();
         assert_eq!(p["error"]["code"], "license_required");

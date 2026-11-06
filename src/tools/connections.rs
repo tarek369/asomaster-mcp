@@ -28,7 +28,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "connect_console",
             "Connect developer console",
-            "Connect an App Store Connect API key (apple: keyId, issuerId, private key .p8) or a Google Play service account (google: service-account JSON, optional package names). Pass FILE PATHS (privateKeyPath / serviceAccountPath; files must be .p8/.pem/.json/.txt in the owner's Downloads, Desktop or Documents folder) so secrets never enter the conversation; the bridge reads them locally and the app stores them in the OS keychain. Credentials are never returned. Needed for console apps, publishing and own-app metadata.",
+            "Connect an App Store Connect API key (apple: keyId, issuerId, private key .p8) or a Google Play service account (google: service-account JSON, optional package names; connecting the same service account again ADDS its package names to the saved ones). Google Play cannot list a developer's apps, so to add an app to an already connected Play account pass store google, accountId and packageNames WITHOUT a key: the app checks each package with the stored key and links the owner's app. Pass FILE PATHS (privateKeyPath / serviceAccountPath; files must be .p8/.pem/.json/.txt in the owner's Downloads, Desktop or Documents folder) so secrets never enter the conversation; the bridge reads them locally and the app stores them in the OS keychain. Credentials are never returned. Needed for console apps, publishing and own-app metadata.",
             s::object(
                 vec![
                     ("store", s::store()),
@@ -40,6 +40,7 @@ pub fn tools() -> Vec<Tool> {
                     ("serviceAccountPath", s::text("google: path to the service-account JSON file.", 1, 1024)),
                     ("serviceAccountJson", s::text("google: service-account JSON contents (prefer serviceAccountPath).", 1, 100000)),
                     ("packageNames", s::array(s::text("Package name.", 1, 255), "google: package names this account manages.", 0, 500)),
+                    ("accountId", s::id("google: a connected Play account (list_console_apps, or details of a console_not_connected error) to add packageNames to with its stored key; no key needed.")),
                 ],
                 &["store"],
             ),
@@ -300,6 +301,9 @@ fn console_credentials(args: &Value, files: &FilePolicy) -> Result<Value, Bridge
 }
 
 async fn connect_console(bridge: &Bridge, args: &Value) -> Result<Value, BridgeError> {
+    if args.get("accountId").is_some() {
+        return add_packages(bridge, args).await;
+    }
     let credentials = console_credentials(args, &FilePolicy::for_bridge(bridge))?;
     bridge
         .dispatch(json!({ "type": "console.connect", "store": args["store"], "credentials": credentials }))
@@ -312,6 +316,39 @@ async fn connect_console(bridge: &Bridge, args: &Value) -> Result<Value, BridgeE
     Ok(
         json!({ "ok": true, "accounts": accounts, "next": "list_console_apps shows the apps; add_console_apps tracks them." }),
     )
+}
+
+/// `connect_console` with `accountId` (Google): add `packageNames` to that
+/// connected account with its stored key, one `console.packages.add` each.
+async fn add_packages(bridge: &Bridge, args: &Value) -> Result<Value, BridgeError> {
+    if args["store"].as_str() != Some("google") {
+        return Err(BridgeError::Invalid(
+            "accountId is only for google (App Store Connect lists the apps of a key by itself)".into(),
+        ));
+    }
+    only(args, &["store", "accountId", "packageNames"], "google with accountId (no key)")?;
+    let account = required(args, "accountId", "google with accountId")?;
+    let packages: Vec<&str> = args
+        .get("packageNames")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
+    if packages.is_empty() {
+        return Err(BridgeError::Invalid(
+            "pass packageNames to add to the account".into(),
+        ));
+    }
+    for package in &packages {
+        bridge
+            .dispatch(json!({ "type": "console.packages.add", "accountId": account, "packageName": package }))
+            .await?;
+    }
+    let accounts = bridge
+        .call("console_accounts", json!({}))
+        .await
+        .map(crate::summarize::prune)
+        .unwrap_or(Value::Null);
+    Ok(json!({ "ok": true, "added": packages, "accounts": accounts, "next": "list_console_apps shows the apps; add_console_apps tracks them." }))
 }
 
 fn popularity_credentials(args: &Value, files: &FilePolicy) -> Result<Value, BridgeError> {

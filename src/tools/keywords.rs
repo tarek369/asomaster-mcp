@@ -14,13 +14,14 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "add_keywords",
             "Add keywords",
-            "Add one or more keywords (search phrases) to a project. section 'listing' = phrases the listing targets now; 'idea' = candidates to evaluate (default). localize=true asks the AI to translate each phrase into every tracked market's search language (otherwise the same phrase is used everywhere). New keywords have no ranks until run_rank_check.",
+            "Add one or more keywords (search phrases) to a project. section 'listing' = phrases the listing targets now; 'idea' = candidates to evaluate (default). localize=true asks the AI to translate each phrase into every tracked market's search language (otherwise the same phrase is used everywhere). New keywords have no ranks until run_rank_check. market (one of the project's markets) also tracks each phrase exactly as written there, e.g. a term from get_search_terms; an existing keyword then only gains that market's phrase.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
                     ("keywords", s::array(s::text("Search phrase.", 1, 100), "Phrases to add.", 1, MAX_BATCH)),
                     ("section", s::enumeration(&["listing", "idea"], "Board section (default idea).")),
                     ("localize", s::boolean("Translate per market with AI (default false).")),
+                    ("market", s::country()),
                 ],
                 &["projectId", "keywords"],
             ),
@@ -218,8 +219,13 @@ async fn add_keywords(bridge: &Bridge, args: &Value) -> Result<Value, BridgeErro
         .get("localize")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    let market = args.get("market").cloned().unwrap_or(Value::Null);
     let (added, failed) = each(bridge, strings(&args["keywords"]), |label| {
-        json!({ "type": "keyword.add", "projectId": project_id, "label": label, "localize": localize, "section": section })
+        let mut action = json!({ "type": "keyword.add", "projectId": project_id, "label": label, "localize": localize, "section": section });
+        if !market.is_null() {
+            action["market"] = market.clone();
+        }
+        action
     })
     .await?;
     Ok(json!({

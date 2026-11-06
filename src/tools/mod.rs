@@ -7,13 +7,16 @@
 
 mod audit;
 mod connections;
+mod impact;
 mod jobs;
 mod keywords;
 mod optimizer;
 mod pricing;
 mod projects;
 mod read;
+mod reviews;
 mod screenshots;
+mod search_terms;
 pub mod schema;
 mod system;
 
@@ -160,11 +163,14 @@ impl Registry {
     fn build() -> Self {
         let tools: Vec<Tool> = [
             read::tools(),
+            impact::tools(),
+            search_terms::tools(),
             audit::tools(),
             projects::tools(),
             keywords::tools(),
             optimizer::tools(),
             pricing::tools(),
+            reviews::tools(),
             screenshots::tools(),
             connections::tools(),
             system::tools(),
@@ -248,6 +254,12 @@ async fn run_custom(bridge: &Bridge, name: &str, args: &Value) -> Result<Value, 
     if let Some(r) = read::run(bridge, name, args).await {
         return r;
     }
+    if let Some(r) = impact::run(bridge, name, args).await {
+        return r;
+    }
+    if let Some(r) = search_terms::run(bridge, name, args).await {
+        return r;
+    }
     if let Some(r) = audit::run(bridge, name, args).await {
         return r;
     }
@@ -261,6 +273,9 @@ async fn run_custom(bridge: &Bridge, name: &str, args: &Value) -> Result<Value, 
         return r;
     }
     if let Some(r) = pricing::run(bridge, name, args).await {
+        return r;
+    }
+    if let Some(r) = reviews::run(bridge, name, args).await {
         return r;
     }
     if let Some(r) = screenshots::run(bridge, name, args).await {

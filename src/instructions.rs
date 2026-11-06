@@ -18,7 +18,10 @@ TYPICAL TASKS:
 - Track an app: search_store -> add_app -> wait_for_jobs -> get_overview -> run_rank_check -> wait_for_jobs -> get_project_board.
 - Find keywords: suggest_keywords or add_keywords (section idea) -> run_rank_check -> compare estVol / estDiff / pop / rank / opp, then promote winners with add_keywords section listing or hide losers with edit_keyword.
 - Improve the listing: optimizer_start -> wait -> get_optimizer -> (optimizer_save_option to tweak) -> optimizer_choose -> optimizer_localize -> wait -> review drafts (optimizer_edit_locale / optimizer_pick_phrase) -> show the owner the exact text.
+- Real searches from Apple Ads (own App Store apps with campaigns, Apple Ads connected): get_search_terms (days 7/30/90, market) -> add_keywords with market for the terms worth tracking.
 - Audit the app: run_audit (options: countries, refetch, moreKeywords, recheck, note) -> wait_for_jobs -> get_audit (country for one market in full); its issues and takeaways name the step that fixes them.
+- Did a change work? get_change_impact (days 7 / 14 / 28; eventId for one change): ranks, store traffic and ratings before vs after each publish, listing edit, version or owner marker, per market. Say it shows what happened around the change, not proof of cause, and mention overlapping changes.
+- Reviews (own apps with a connected console): sync_reviews -> wait_for_jobs -> get_reviews (filters: stars, market, replied, search) -> draft_review_reply for the ones worth answering -> wait_for_jobs -> get_reviews shows the draft. Only the owner can send a reply, in the app; never claim a reply was posted. Add good review phrases from ideas with add_keywords (section idea; market = the idea's country when it is a tracked market other than the main one, so the phrase is tracked there as written).
 - Local prices (own apps with a connected console): get_pricing -> plan_pricing (select products, method, base price, floor / ceiling, overrides, start date) -> show the owner the per-country before / after -> publish_pricing only on their explicit go-ahead -> wait_for_jobs -> get_pricing (lastRun).
 
 SAFETY:
@@ -31,4 +34,4 @@ SAFETY:
 - The stores rate-limit; large checks take minutes. If a job reports pausedUntil, the app is backing off on purpose — keep waiting.
 - A job with aiPause is waiting for the AI's usage limit; it resumes by itself at aiPause.resumesAt (resume_job retries now or switches AI).
 
-ERRORS come back as {error:{code,message,action?},hint}. license_required / feature_not_licensed: the owner must activate or upgrade in the app - stop and tell them. ai_not_configured: see get_ai_status. console_not_connected: connect_console. app_unavailable: ask the owner to open ASOMaster."#;
+ERRORS come back as {error:{code,message,action?},hint}. license_required / feature_not_licensed: the owner must activate or upgrade in the app - stop and tell them. ai_not_configured: see get_ai_status. console_not_connected: connect_console (error.details present: a Play account is connected but lacks the package; pass store google, accountId, packageNames, no key). app_unavailable: ask the owner to open ASOMaster."#;

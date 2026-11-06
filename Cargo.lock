@@ -27,7 +27,7 @@ dependencies = [
 
 [[package]]
 name = "asomaster-mcp"
-version = "0.2.0"
+version = "0.2.3"
 dependencies = [
  "jsonschema",
  "serde",

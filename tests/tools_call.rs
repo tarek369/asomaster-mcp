@@ -129,6 +129,10 @@ async fn tools_cover_every_agent_facing_engine_action() {
             json!({"store":"apple","keyId":"K","issuerId":"I","privateKeyPath":k}),
         ),
         (
+            "connect_console",
+            json!({"store":"google","accountId":"a1","packageNames":["com.a.b"]}),
+        ),
+        (
             "connect_popularity",
             json!({"source":"apple_ads","clientId":"c","teamId":"t","keyId":"k","privateKeyPath":k}),
         ),
@@ -179,6 +183,7 @@ async fn tools_cover_every_agent_facing_engine_action() {
         "console.connect",
         "console.test",
         "console.disconnect",
+        "console.packages.add",
         "popularity.connect",
         "popularity.disconnect",
         "job.stop",
@@ -190,6 +195,8 @@ async fn tools_cover_every_agent_facing_engine_action() {
         "ai.test",
         "alerts.read",
         "alerts.clear",
+        "reviews.sync",
+        "reviews.draft",
     ];
     let missing: Vec<&str> = expected
         .iter()
@@ -214,6 +221,7 @@ async fn tools_cover_every_agent_facing_engine_action() {
         "list_alerts",
         "get_assistant",
         "export_data",
+        "get_reviews",
     ] {
         assert!(methods.contains(cmd), "command {cmd} never called");
     }
@@ -467,6 +475,57 @@ async fn secrets_are_sent_to_the_app_but_never_returned() {
 }
 
 #[tokio::test]
+async fn connect_console_with_an_account_id_adds_packages_without_a_key() {
+    let app = FakeApp::start(default_reply).await;
+    let (is_error, v) = call_tool(
+        &app.server(),
+        "connect_console",
+        json!({"store":"google","accountId":"7","packageNames":["com.cressu.bombrun","com.cressu.other"]}),
+    )
+    .await;
+    assert!(!is_error, "{v}");
+    assert_eq!(v["added"], json!(["com.cressu.bombrun", "com.cressu.other"]));
+    let actions = app.actions();
+    assert_eq!(
+        actions,
+        vec![
+            json!({"type":"console.packages.add","accountId":"7","packageName":"com.cressu.bombrun"}),
+            json!({"type":"console.packages.add","accountId":"7","packageName":"com.cressu.other"}),
+        ]
+    );
+    // A key, the apple store or no packages with accountId are refused before the app is asked.
+    for args in [
+        json!({"store":"google","accountId":"7","packageNames":["com.a.b"],"serviceAccountJson":"{}"}),
+        json!({"store":"apple","accountId":"7","packageNames":["com.a.b"]}),
+        json!({"store":"google","accountId":"7"}),
+    ] {
+        let (is_error, v) = call_tool(&app.server(), "connect_console", args.clone()).await;
+        assert!(is_error, "{args}");
+        assert_eq!(v["error"]["code"], "invalid_input", "{args}");
+    }
+    assert_eq!(app.actions().len(), 2);
+}
+
+#[tokio::test]
+async fn a_missing_play_package_error_keeps_its_fix_for_the_agent() {
+    let app = FakeApp::start(|m, p| match m {
+        "dispatch" => {
+            let mut data = json!({"code":"console_not_connected","message":"The connected Play Console account x doesn't include com.cressu.bombrun.","action":"add_package"});
+            data["details"] = json!({"accountId":"7","account":"x","packageName":"com.cressu.bombrun"});
+            Reply::Err(json!({"code": -32000, "message": "missing", "data": data}))
+        }
+        _ => default_reply(m, p),
+    })
+    .await;
+    let (is_error, v) = call_tool(&app.server(), "resync_project", json!({"projectId":"1"})).await;
+    assert!(is_error);
+    assert_eq!(v["error"]["action"], "add_package");
+    assert_eq!(v["error"]["details"]["accountId"], "7");
+    assert_eq!(v["error"]["details"]["packageName"], "com.cressu.bombrun");
+    assert!(v["hint"].as_str().unwrap().contains("accountId"), "{v}");
+}
+
+#[tokio::test]
 async fn wait_returns_when_a_job_finishes() {
     let finished = Arc::new(AtomicBool::new(false));
     let f = finished.clone();
@@ -708,6 +767,27 @@ async fn rival_changes_come_from_the_app() {
 }
 
 #[tokio::test]
+async fn change_impact_reads_from_the_app_with_the_window_asked_for() {
+    let app = FakeApp::start(|m, p| match m {
+        "get_change_impact" => Reply::Ok(json!({"projectId": p["projectId"], "days": p["days"], "events": [
+            {"id": "2", "kind": "manual", "label": "New screenshots", "verdict": "too_early", "fields": [], "overlaps": ["1"],
+             "markets": [{"country": "us", "verdict": "too_early", "ranks": {"before": {"top10": 2}, "after": {"top10": 4}}, "traffic": {}, "ratings": {}}]},
+            {"id": "1", "kind": "publish", "label": "Listing published", "verdict": "improved", "fields": [{}], "overlaps": ["2"], "markets": []}
+        ]})),
+        _ => default_reply(m, p),
+    })
+    .await;
+    let (is_error, payload) = call_tool(&app.server(), "get_change_impact", json!({"projectId": "4", "days": 28})).await;
+    assert!(!is_error, "{payload}");
+    assert_eq!(payload["days"], 28);
+    assert_eq!(payload["events"][0]["markets"][0]["top10"], json!([2, 4]));
+    assert_eq!(payload["events"][1]["fields"], 1, "older changes are one line");
+    let (is_error, _) = call_tool(&app.server(), "get_change_impact", json!({"projectId": "4", "days": 10})).await;
+    assert!(is_error, "only 7, 14 or 28 days");
+    assert!(app.actions().is_empty(), "read-only");
+}
+
+#[tokio::test]
 async fn get_audit_reads_from_the_app() {
     let app = FakeApp::start(|m, p| match m {
         "get_audit" => Reply::Ok(json!({"total": 61, "projectId": p["projectId"], "mainCountry": "us", "countries": [
@@ -723,6 +803,46 @@ async fn get_audit_reads_from_the_app() {
     assert_eq!(payload["projectId"], "4");
     assert!(payload["countries"][0]["top10"].is_array(), "main country in full");
     assert_eq!(payload["countries"][1]["rankings"], 30, "others compact");
+}
+
+#[tokio::test]
+async fn get_search_terms_reads_the_cached_report_for_one_market() {
+    let app = FakeApp::start(|m, p| match m {
+        "get_search_terms" => Reply::Ok(json!({"state": "ready", "projectId": p["projectId"], "days": p["days"], "markets": [
+            {"country": "us", "lowVolume": {"impressions": 40}, "terms": [
+                {"term": "white noise", "impressions": 900, "avoided": false},
+                {"term": "free sleep", "impressions": 100, "avoided": true}
+            ]},
+            {"country": "gb", "terms": [{"term": "rain", "impressions": 10, "avoided": false}]}
+        ]})),
+        _ => default_reply(m, p),
+    })
+    .await;
+    let (is_error, payload) =
+        call_tool(&app.server(), "get_search_terms", json!({"projectId": "4", "days": 90, "market": "us"})).await;
+    assert!(!is_error, "{payload}");
+    assert_eq!((payload["projectId"].clone(), payload["days"].clone()), (json!("4"), json!(90)));
+    let markets = payload["markets"].as_array().unwrap();
+    assert_eq!(markets.len(), 1);
+    assert_eq!(markets[0]["terms"].as_array().unwrap().len(), 1, "don't-target terms left out");
+    assert_eq!(markets[0]["avoidedCount"], 1);
+    assert_eq!(markets[0]["lowVolume"]["impressions"], 40);
+    assert!(app.actions().is_empty(), "read-only");
+}
+
+#[tokio::test]
+async fn add_keywords_can_track_a_phrase_in_one_market() {
+    let app = FakeApp::start(default_reply).await;
+    let (is_error, payload) = call_tool(
+        &app.server(),
+        "add_keywords",
+        json!({"projectId": "1", "keywords": ["regengeräusche"], "localize": true, "market": "DE"}),
+    )
+    .await;
+    assert!(!is_error, "{payload}");
+    assert_eq!(app.actions()[0]["market"], "de");
+    let (_, _) = call_tool(&app.server(), "add_keywords", json!({"projectId": "1", "keywords": ["x"]})).await;
+    assert!(app.actions()[1].get("market").is_none());
 }
 
 #[tokio::test]
@@ -743,6 +863,26 @@ async fn run_audit_and_dismiss_dispatch_audit_actions() {
     assert_eq!(sent[0]["type"], "audit.run");
     assert_eq!(sent[0]["options"]["recheck"], true);
     assert_eq!(sent[1], json!({"type": "audit.restore", "projectId": "4", "appId": "42"}));
+}
+
+#[tokio::test]
+async fn reviews_are_read_and_drafted_but_never_sent() {
+    let app = FakeApp::start(|m, p| match m {
+        "get_reviews" => Reply::Ok(json!({"projectId": p["projectId"], "query": p["query"], "reviews": []})),
+        _ => default_reply(m, p),
+    })
+    .await;
+    let server = app.server();
+    let (is_error, payload) = call_tool(&server, "get_reviews", json!({"projectId": "4", "stars": [1], "market": "DE"})).await;
+    assert!(!is_error, "{payload}");
+    assert_eq!(payload["query"], json!({"days": 90, "limit": 50, "stars": [1], "market": "de"}));
+    let (is_error, payload) = call_tool(&server, "draft_review_reply", json!({"projectId": "4", "reviewId": "r1", "directions": "mention the 2.1 fix"})).await;
+    assert!(!is_error, "{payload}");
+    assert_eq!(payload["queued"], true);
+    assert_eq!(app.actions()[0], json!({"type": "reviews.draft", "projectId": "4", "reviewId": "r1", "directions": "mention the 2.1 fix"}));
+    for name in ["send_review_reply", "reply_to_review", "delete_review_reply"] {
+        assert!(registry().get(name).is_none(), "{name} must not exist");
+    }
 }
 
 #[tokio::test]
