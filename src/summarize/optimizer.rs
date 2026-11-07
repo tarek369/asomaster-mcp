@@ -32,7 +32,8 @@ fn listing(l: &Value, full: bool) -> Value {
     o
 }
 
-fn option(o: &Value, full: bool) -> Value {
+/// `number`: the option's 1-based position, as the app and the verdict number it.
+fn option(o: &Value, number: usize, full: bool) -> Value {
     let mut out = pick(
         o,
         &[
@@ -43,6 +44,7 @@ fn option(o: &Value, full: bool) -> Value {
             ("problems", "problems"),
         ],
     );
+    out["number"] = json!(number);
     out["listing"] = listing(&o["listing"], full);
     for k in ["reach", "difficulty", "reachDelta", "difficultyDelta"] {
         out[k] = round1(&o[k]);
@@ -63,6 +65,7 @@ fn option(o: &Value, full: bool) -> Value {
                 ("popularity", "pop"),
                 ("rank", "rank"),
                 ("coveredBy", "coveredBy"),
+                ("fields", "fields"),
             ]
         ))
         .collect::<Vec<_>>());
@@ -114,6 +117,9 @@ pub fn optimizer(s: &Value, full: bool, locale: Option<&str>) -> Value {
             ("lastPublishedAt", "lastPublishedAt"),
             ("lastPublishedVersion", "lastPublishedVersion"),
             ("lastError", "lastError"),
+            ("verdict", "verdict"),
+            ("consoleLinked", "consoleLinked"),
+            ("keywordsUnknown", "keywordsUnknown"),
         ],
     );
     if !arr(&s["failedLocales"]).is_empty() {
@@ -133,7 +139,8 @@ pub fn optimizer(s: &Value, full: bool, locale: Option<&str>) -> Value {
     out["current"] = listing(&s["current"], full);
     out["options"] = json!(arr(&s["options"])
         .iter()
-        .map(|o| option(o, full))
+        .enumerate()
+        .map(|(i, o)| option(o, i + 1, full))
         .collect::<Vec<_>>());
     out["locales"] = json!(arr(&s["locales"])
         .iter()

@@ -121,7 +121,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "get_screenshots",
             "Screenshot designer state",
-            "The project's screenshot design: slides (heading in the main locale, image per device), theme, headings per locale, render status per locale/device/slot, and checks (errors block export and upload: missing images, headings over the limit, stale or missing translations, low text contrast). Write headings with screenshots_write_headings / screenshots_translate, change slides with screenshots_edit_slide / screenshots_set_theme, add images with screenshots_import_store / screenshots_add_image, then screenshots_render, screenshots_export and (with the owner's go-ahead) screenshots_upload.",
+            "The project's screenshot design: slides (heading in the main locale, image per device), theme, headings per locale, render status per locale/device/slot, devices drawn in landscape (design.landscape; sizes swapped), and checks (errors block export and upload; warnings do not: missing images, headings over the limit, stale or missing translations, low text contrast, images that will be cropped, the same image on several slides). Plain slides show their image as it is, with no heading. Write headings with screenshots_write_headings / screenshots_translate, change slides with screenshots_edit_slide / screenshots_set_theme, add images with screenshots_import_store / screenshots_add_image, then screenshots_render, screenshots_export and (with the owner's go-ahead) screenshots_upload.",
             s::object(vec![("projectId", s::project_id())], &["projectId"]),
             READ,
         ),
