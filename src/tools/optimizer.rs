@@ -156,7 +156,7 @@ pub fn tools() -> Vec<Tool> {
                 vec![
                     ("projectId", s::project_id()),
                     ("optionId", s::id("Chosen option id.")),
-                    ("corePhrases", s::array(s::text("Phrase.", 1, 100), "Main-locale phrases to keep in every locale.", 0, 50)),
+                    ("corePhrases", s::array(s::text("Phrase.", 1, 100), "Main-locale phrases to keep in every locale: 1 to 4, the app's main topics.", 1, 4)),
                 ],
                 &["projectId", "optionId", "corePhrases"],
             ),

@@ -32,6 +32,15 @@ pub struct IpcClient {
     next_id: AtomicU64,
     events: broadcast::Sender<IpcEvent>,
     closed: Arc<AtomicBool>,
+    /// The reader holds half of the stream: it is stopped on drop so the
+    /// connection closes (the app serves a fixed number of connections).
+    reader: tokio::task::AbortHandle,
+}
+
+impl Drop for IpcClient {
+    fn drop(&mut self) {
+        self.reader.abort();
+    }
 }
 
 impl IpcClient {
@@ -46,18 +55,20 @@ impl IpcClient {
         let (events, _) = broadcast::channel(EVENT_BUFFER);
         let closed = Arc::new(AtomicBool::new(false));
         tokio::spawn(write_loop(write, rx, closed.clone()));
-        tokio::spawn(read_loop(
+        let reader = tokio::spawn(read_loop(
             read,
             pending.clone(),
             events.clone(),
             closed.clone(),
-        ));
+        ))
+        .abort_handle();
         Self {
             out,
             pending,
             next_id: AtomicU64::new(1),
             events,
             closed,
+            reader,
         }
     }
 
@@ -113,6 +124,8 @@ async fn write_loop<W: AsyncWrite>(
             break;
         }
     }
+    // Queue closed (client dropped) or write failed: tell the app we are done.
+    let _ = write.shutdown().await;
     closed.store(true, Ordering::SeqCst);
 }
 
@@ -223,5 +236,25 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(r["echo"], "ping");
+    }
+
+    /// A dropped client must close its connection: the app serves a fixed
+    /// number of connections, and `wait_for_jobs` opens one per call.
+    #[tokio::test]
+    async fn dropping_the_client_closes_the_connection() {
+        let (a, b) = tokio::io::duplex(1 << 16);
+        let client = IpcClient::start(a);
+        let (r, mut w) = tokio::io::split(b);
+        // The app keeps pushing events to a subscribed connection.
+        w.write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"event\",\"params\":{}}\n")
+            .await
+            .unwrap();
+        drop(client);
+        let mut lines = BufReader::new(r).lines();
+        let eof = tokio::time::timeout(Duration::from_secs(2), lines.next_line()).await;
+        assert!(
+            matches!(eof, Ok(Ok(None))),
+            "the app side saw no EOF: {eof:?}"
+        );
     }
 }

@@ -69,7 +69,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "connect_popularity",
             "Connect popularity source",
-            "Connect a source of REAL keyword popularity: apple_ads (Apple Ads API: clientId, teamId, keyId, private key, optional orgId), google_ads_planner (Google Ads Keyword Planner: developerToken, customerId, refreshToken, oauthClientId, oauthClientSecret, optional loginCustomerId) or imported (a popularity export file at filePath). Prefer file paths for keys. Secrets go to the OS keychain and are never returned. Then call fetch_popularity.",
+            "Connect a source of REAL keyword popularity: apple_ads (Apple Ads API: clientId, teamId, keyId, private key, optional orgId), google_ads_planner (Google Ads Keyword Planner through the owner's own Google Cloud project at Basic access: customerId, refreshToken, oauthClientId, oauthClientSecret, optional loginCustomerId; the owner can also sign in from Settings › Popularity instead) or imported (a popularity export file at filePath). Prefer file paths for keys. Secrets go to the OS keychain and are never returned. Then call fetch_popularity.",
             s::object(
                 vec![
                     ("source", s::enumeration(&["apple_ads", "google_ads_planner", "imported"], "Popularity source.")),
@@ -79,7 +79,7 @@ pub fn tools() -> Vec<Tool> {
                     ("privateKeyPath", s::text("apple_ads: path to the private key PEM.", 1, 1024)),
                     ("privateKeyPem", s::text("apple_ads: PEM contents (prefer privateKeyPath).", 1, 10000)),
                     ("orgId", s::text("apple_ads: org id when several are visible.", 1, 64)),
-                    ("developerToken", s::text("google_ads_planner: developer token.", 1, 200)),
+                    ("developerToken", s::text("google_ads_planner: legacy developer token (optional; Google retired them, access comes from the Cloud project).", 1, 200)),
                     ("customerId", s::text("google_ads_planner: customer id.", 1, 64)),
                     ("refreshToken", s::text("google_ads_planner: OAuth refresh token.", 1, 2000)),
                     ("oauthClientId", s::text("google_ads_planner: OAuth client id.", 1, 500)),
@@ -395,8 +395,10 @@ fn popularity_credentials(args: &Value, files: &FilePolicy) -> Result<Value, Bri
                 ],
                 source,
             )?;
+            if let Some(t) = args.get("developerToken") {
+                c.insert("developerToken".into(), t.clone());
+            }
             for k in [
-                "developerToken",
                 "customerId",
                 "refreshToken",
                 "oauthClientId",
@@ -494,6 +496,13 @@ mod tests {
             &files,
         );
         assert!(r.is_err());
+        let no_dev_token = popularity_credentials(
+            &json!({"source":"google_ads_planner","customerId":"1234567890","refreshToken":"r",
+                    "oauthClientId":"i","oauthClientSecret":"s"}),
+            &files,
+        )
+        .unwrap();
+        assert!(no_dev_token.get("developerToken").is_none());
     }
 
     #[test]
