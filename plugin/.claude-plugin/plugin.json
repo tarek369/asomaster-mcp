@@ -1,7 +1,7 @@
 {
   "name": "asomaster",
   "displayName": "ASOMaster",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Work with your ASOMaster desktop app from Claude: App Store and Google Play keyword ranks, real search popularity, listing drafts in every language, audits, reviews and local prices.",
   "author": {
     "name": "Cressu OÜ",
@@ -10,6 +10,16 @@
   },
   "homepage": "https://asomaster.app/docs/mcp/",
   "repository": "https://github.com/tarek369/asomaster-mcp",
+  "documentationUrl": "https://asomaster.app/docs/mcp/",
+  "supportUrl": "https://asomaster.app/support/",
+  "privacyPolicyUrl": "https://asomaster.app/privacy/",
+  "termsOfServiceUrl": "https://asomaster.app/terms/",
   "license": "MIT",
-  "keywords": ["aso", "app-store", "google-play", "keywords", "app-store-optimization"]
+  "keywords": [
+    "aso",
+    "app-store",
+    "google-play",
+    "keywords",
+    "app-store-optimization"
+  ]
 }
