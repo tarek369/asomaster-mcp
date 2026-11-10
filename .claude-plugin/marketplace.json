@@ -1,0 +1,15 @@
+{
+  "name": "asomaster",
+  "description": "The ASOMaster plugin for Claude: App Store and Google Play optimization from your ASOMaster desktop app.",
+  "owner": {
+    "name": "Cressu OÜ",
+    "email": "asomaster@cressu.com"
+  },
+  "plugins": [
+    {
+      "name": "asomaster",
+      "source": "./plugin",
+      "description": "Work with your ASOMaster desktop app from Claude: App Store and Google Play keyword ranks, real search popularity, listing drafts in every language, audits, reviews and local prices."
+    }
+  ]
+}

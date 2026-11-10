@@ -24,7 +24,13 @@ Full docs: <https://asomaster.app/docs/mcp/> (Markdown for agents: <https://asom
 | macOS   | `/Applications/ASOMaster.app/Contents/MacOS/asomaster-mcp` |
 | Windows | `%LOCALAPPDATA%\ASOMaster\asomaster-mcp.exe` |
 
-Claude Code:
+Claude Code, as a plugin (folder [plugin/](plugin/)):
+
+```
+/plugin install asomaster --marketplace tarek369/asomaster-mcp
+```
+
+Or add the server directly:
 
 ```sh
 claude mcp add --scope user asomaster -- /Applications/ASOMaster.app/Contents/MacOS/asomaster-mcp
@@ -78,7 +84,8 @@ The app doesn't need to be open; the bridge starts it. Supported MCP protocol ve
 
 - Anything that changes a live store page (publishing a listing, prices, screenshots or a replacement
   app name) needs your go-ahead twice: the agent must pass your explicit approval, and the app shows a
-  native confirmation only you can answer. Nothing is submitted for review.
+  native confirmation only you can answer. Nothing is submitted for review on the App Store; on Google Play
+  changes wait for you to send them, except for apps whose changes Play always sends for review.
 - Credentials are passed as file paths, stored in the OS keychain and never returned by a tool.
 - Local only: owner-only Unix socket on macOS, per-user named pipe with a token on Windows.
 
