@@ -2,7 +2,7 @@
   "mcpServers": {
     "asomaster": {
       "command": "sh",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/bin/asomaster-mcp.sh"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/asomaster-mcp.sh"]
     }
   }
 }

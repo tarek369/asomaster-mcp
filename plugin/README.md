@@ -31,7 +31,7 @@ On older Claude Code versions, add the marketplace first, then install:
 
 ## What the plugin runs
 
-The plugin adds one MCP server, `asomaster`. Its launcher, `bin/asomaster-mcp.sh`, looks for the
+The plugin adds one MCP server, `asomaster`. Its launcher, `scripts/asomaster-mcp.sh`, looks for the
 `asomaster-mcp` bridge that ships inside the ASOMaster app and runs it:
 
 | System  | Bridge it runs |
