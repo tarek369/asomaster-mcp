@@ -168,7 +168,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "optimizer_localize",
             "Localize chosen listing",
-            "Write per-locale drafts of the chosen listing: the core phrases are translated, candidate local phrasings are measured in each locale's test market, and the best are used. A locale that fails does not stop the others; get_optimizer lists failedLocales and lastError. Background job.",
+            "Write per-locale drafts of the chosen listing: the core phrases are translated, candidate local phrasings are measured in each locale's test market, and the best are used. Each language not in the main language also gets its own full description, translated from the main one around its local phrases (skipped with a note when it fails). A locale that fails does not stop the others; get_optimizer lists failedLocales and lastError. Background job.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
@@ -258,7 +258,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "publish_listing",
             "Publish listing to the store",
-            "DESTRUCTIVE / LIVE: pushes the chosen listing and every ready locale draft to App Store Connect or Google Play Console, changing what real users see. Only call after the owner has reviewed the exact listing text and explicitly told you to publish in this conversation; never on your own initiative and never as part of a larger plan they approved in general terms. Requires a connected console. The app then shows the owner a confirmation dialog listing the store, app, version, locales and fields; nothing is published unless they click Publish there (no answer within ~2 minutes = denied, error code not_approved). Background job once approved; follow with wait_for_jobs and report the outcome.",
+            "DESTRUCTIVE / LIVE: pushes the chosen listing and every ready locale draft to App Store Connect or Google Play Console, changing what real users see. Only call after the owner has reviewed the exact listing text and explicitly told you to publish in this conversation; never on your own initiative and never as part of a larger plan they approved in general terms. Requires a connected console. The app then shows the owner a confirmation dialog listing the store, app, version, locales and fields; nothing is published unless they click Publish there (no answer within ~5 minutes = denied, error code not_approved). Background job once approved; follow with wait_for_jobs and report the outcome.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),

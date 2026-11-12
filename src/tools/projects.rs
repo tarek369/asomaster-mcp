@@ -80,13 +80,14 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "update_project",
             "Edit project",
-            "Rename a project, change its brief (context used by the AI) or its automatic rank-check schedule.",
+            "Rename a project, change its brief (context used by the AI), its automatic rank-check schedule, or whether it is the owner's app (mine) or a competitor (keeps keywords and history).",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
                     ("name", s::text("Display name.", 1, 200)),
                     ("brief", s::text("Short description of the app used by the AI.", 0, 4000)),
                     ("autoCheck", s::enumeration(&["inherit", "off", "daily", "weekly", "biweekly", "monthly"], "Automatic check schedule (inherit = global setting).")),
+                    ("kind", s::enumeration(&["mine", "competitor"], "mine = an app the owner publishes; competitor = someone else's.")),
                 ],
                 &["projectId"],
             ),

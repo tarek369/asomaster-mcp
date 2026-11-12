@@ -88,7 +88,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "publish_pricing",
             "Publish prices to the store",
-            "DESTRUCTIVE / LIVE: writes the plan's changed prices for the selected products (or productIds) to App Store Connect or Google Play Console; real customers then pay them. Only call after the owner has seen the per-country before/after (get_pricing) and explicitly told you to publish in this conversation. The app shows the owner a confirmation dialog listing products, countries and the start date; nothing is written unless they confirm there (no answer within ~2 minutes = denied, code not_approved). App Store subscriptions keep existing subscribers on their price by default (a price increase never reaches them); Google Play never moves existing subscribers. Background job; follow with wait_for_jobs, then get_pricing for the report.",
+            "DESTRUCTIVE / LIVE: writes the plan's changed prices for the selected products (or productIds) to App Store Connect or Google Play Console; real customers then pay them. Only call after the owner has seen the per-country before/after (get_pricing) and explicitly told you to publish in this conversation. The app shows the owner a confirmation dialog listing products, countries and the start date; nothing is written unless they confirm there (no answer within ~5 minutes = denied, code not_approved). App Store subscriptions keep existing subscribers on their price by default (a price increase never reaches them); Google Play never moves existing subscribers. Background job; follow with wait_for_jobs, then get_pricing for the report.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),

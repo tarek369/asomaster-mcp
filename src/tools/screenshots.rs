@@ -174,7 +174,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "screenshots_upload",
             "Upload screenshots to the store",
-            "LIVE: replaces the screenshots of the editable App Store version or the Play listing with the rendered set (unchanged sets are skipped; nothing is submitted for review). `locales` uploads only those languages (e.g. just the main one; only their screenshots must be rendered) and leaves the others as they are in the store. Only call after the owner has seen the screenshots and told you to upload them in this conversation. The app then shows the owner a confirmation dialog; nothing is sent unless they approve there (no answer in ~2 minutes = denied, error not_approved). dryRun checks everything without changing the store and needs no dialog. Background job; follow with wait_for_jobs.",
+            "LIVE: replaces the screenshots of the editable App Store version or the Play listing with the rendered set (unchanged sets are skipped; nothing is submitted for review). `locales` uploads only those languages (e.g. just the main one; only their screenshots must be rendered) and leaves the others as they are in the store. Only call after the owner has seen the screenshots and told you to upload them in this conversation. The app then shows the owner a confirmation dialog; nothing is sent unless they approve there (no answer in ~5 minutes = denied, error not_approved). dryRun checks everything without changing the store and needs no dialog. Background job; follow with wait_for_jobs.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
