@@ -9,7 +9,7 @@ WORKFLOW: inspect -> act -> wait -> read.
 4. Read the results again (board / optimizer / assistant thread) before deciding the next step.
 
 DATA YOU MUST KEEP APART:
-- estVol / estDiff are ASOMaster ESTIMATES (0-100) modelled from store search results. They exist for every checked keyword.
+- estVol / estDiff are ASOMaster ESTIMATES (0-100) modelled from store search results (App Store estVol also from the store autocomplete). They exist for every checked keyword.
 - pop is REAL popularity (0-100) from a connected source (Apple Ads, Google Ads Keyword Planner or an imported file). It only exists after connect_popularity + fetch_popularity. Never present an estimate as real popularity or vice versa; say which one you are using.
 - rank = position in store search for that market; absent = not ranked in the checked results.
 - Markets are lower-case country codes ("us", "de"); listing locales look like "en-US". Apple and Google projects are separate even for the same app.

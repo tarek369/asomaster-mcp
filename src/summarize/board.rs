@@ -190,6 +190,7 @@ pub fn board(b: &Value, opts: &BoardOpts) -> Value {
                 &[
                     ("relation", "relation"),
                     ("aheadCount", "aheadOfUs"),
+                    ("missingCount", "ranksWhereWeDont"),
                     ("behindCount", "behindUs"),
                     ("sharedPhrases", "sharedPhrases"),
                 ],
@@ -227,6 +228,9 @@ pub fn board(b: &Value, opts: &BoardOpts) -> Value {
     });
     if !arr(&b["avoid"]).is_empty() {
         out["dontTarget"] = b["avoid"].clone();
+    }
+    if !arr(&b["untrackedWords"]).is_empty() {
+        out["untrackedListingWords"] = b["untrackedWords"].clone();
     }
     if !omitted.is_empty() {
         out["otherMarkets"] = json!(omitted);
@@ -346,6 +350,15 @@ mod tests {
         assert_eq!(out["competitors"][0]["relation"], "losing_to");
         let de = board(&b, &BoardOpts { markets: Some(vec!["de".into()]), ..BoardOpts::default() });
         assert_eq!(de["competitors"][0]["app"]["id"], "z");
+    }
+
+    #[test]
+    fn untracked_listing_words_pass_through_when_present() {
+        let mut b = sample();
+        assert!(board(&b, &BoardOpts::default()).get("untrackedListingWords").is_none());
+        b["untrackedWords"] = json!([{"word": "rain", "field": "subtitle", "phrase": "rain sounds"}]);
+        let out = board(&b, &BoardOpts::default());
+        assert_eq!(out["untrackedListingWords"][0]["phrase"], "rain sounds");
     }
 
     #[test]
