@@ -98,7 +98,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "optimizer_save_option",
             "Add or edit a listing option",
-            "Add your own listing option (omit optionId) or replace the listing of an existing option. The app re-scores it and reports validation problems (length limits, repeated words) in get_optimizer.",
+            "Add your own listing option (omit optionId) or replace the listing of an existing option. The app re-scores it and reports validation problems (length limits, repeated words) in get_optimizer. A description or promotional text you set on the chosen option (or on an option you then choose) that differs from the live text becomes the Copy draft with publishing switched on, so publish_listing sends it.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
@@ -168,7 +168,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "optimizer_localize",
             "Localize chosen listing",
-            "Write per-locale drafts of the chosen listing: the core phrases are translated, candidate local phrasings are measured in each locale's test market, and the best are used. Each language not in the main language also gets its own full description, translated from the main one around its local phrases (skipped with a note when it fails). A locale that fails does not stop the others; get_optimizer lists failedLocales and lastError. Background job.",
+            "Write per-locale drafts of the chosen listing: the core phrases are translated, candidate local phrasings are measured in each locale's test market, and the best are used. Each language not in the main language also gets its own full description, translated from the description that will be published (the Copy draft when it is set to publish, else the live one) around its local phrases (skipped with a note when it fails); variants of the main language (en-GB for en-US) take a new main description as written. Fields edited with optimizer_edit_locale are kept unless redoEdited is true. A locale that fails does not stop the others; get_optimizer lists failedLocales and lastError. Background job.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
@@ -176,6 +176,7 @@ pub fn tools() -> Vec<Tool> {
                     ("directions", s::directions()),
                     ("remaining", s::boolean("Only locales without a draft yet or that failed last time (finish an interrupted run).")),
                     ("scope", s::enumeration(&["markets", "all"], "Without locales: the tracked markets' locales (markets, default) or every listing locale of the store in fast mode (all: batched AI candidates, parallel, measured in each locale's test market only).")),
+                    ("redoEdited", s::boolean("Rewrite fields the owner edited too (default: they are kept).")),
                 ],
                 &["projectId"],
             ),
@@ -187,7 +188,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "optimizer_edit_locale",
             "Edit a locale draft",
-            "Change fields of one locale's draft listing (empty string clears a field).",
+            "Change fields of one locale's draft listing (empty string clears a field). Edited fields are kept when the listing is localized again (unless optimizer_localize gets redoEdited).",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
@@ -222,7 +223,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "optimizer_review",
             "Final review of the listing",
-            "Review the localized listing: names and subtitles of every language against the approved main listing (wrong meaning, dropped topic, doubled word, wrong regional variant or script, stray English, over the limit), a rejection-risk scan of keyword fields and copy (vulgar words, other brands, medical claims, price/free words, missing features, wrong script, changed links) and rule checks. Fixes are applied most severe first when they fit; the rest are listed as looks. Runs by itself after optimizer_localize; get_optimizer shows review.changes / review.looks. Never blocks publishing. Background job.",
+            "Review the localized listing: names and subtitles of every language against the approved main listing (wrong meaning, dropped topic, doubled word, wrong regional variant or script, stray English, over the limit), a rejection-risk scan of keyword fields and copy (vulgar words, other brands, medical claims, price/free words, missing features, wrong script, changed links; what the live main-language listing already says counts as fact, and subscription terms naming the store or account are kept) and rule checks. Fixes are applied most severe first when they fit; the rest are listed as looks. Runs by itself after optimizer_localize; get_optimizer shows review.changes / review.looks. Never blocks publishing. Background job.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
