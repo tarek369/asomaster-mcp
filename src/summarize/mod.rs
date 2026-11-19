@@ -144,6 +144,7 @@ pub fn project(p: &Value) -> Value {
             ("checkedPhrases", "checkedPhrases"),
             ("uncheckedPhrases", "neverChecked"),
             ("auditStep", "auditStep"),
+            ("pairedWith", "pairedWith"),
         ],
     )
 }
@@ -182,6 +183,7 @@ pub fn overview(
             ("aiProvider", "aiProvider"),
             ("aiModel", "aiModel"),
             ("checkSchedule", "checkSchedule"),
+            ("checkHour", "checkHour"),
             ("checkSpeed", "checkSpeed"),
             ("defaultMarkets", "defaultMarkets"),
         ],
@@ -227,6 +229,7 @@ pub fn markets(list: &Value, featured_only: bool) -> Value {
                     ("searchLanguage", "searchLanguage"),
                     ("listingLocales", "listingLocales"),
                     ("englishSearch", "englishSearch"),
+                    ("keywordLocale", "keywordLocale"),
                     ("featured", "featured"),
                     ("accessNote", "accessNote"),
                 ],

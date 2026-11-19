@@ -67,7 +67,7 @@ pub fn tools() -> Vec<Tool> {
 /// One line per country that is not shown in full.
 fn compact(c: &Value) -> Value {
     let mut out = Map::new();
-    for k in ["country", "name", "potential", "main", "localized", "total", "verdict", "gapCount"] {
+    for k in ["country", "name", "potential", "main", "localized", "total", "verdict", "gapCount", "winnableStatus"] {
         out.insert(k.into(), c[k].clone());
     }
     for part in ["rankings", "listing", "competition"] {
@@ -116,12 +116,13 @@ mod tests {
 
     #[test]
     fn one_country_full_the_rest_compact() {
-        let c = |cc: &str| json!({"country": cc, "name": cc, "total": 50, "rankings": {"score": 40}, "issues": [{}, {}], "top10": [1], "conclusion": {"headline": "h"}});
+        let c = |cc: &str| json!({"country": cc, "name": cc, "total": 50, "winnableStatus": "none_winnable", "rankings": {"score": 40}, "issues": [{}, {}], "top10": [1], "conclusion": {"headline": "h"}});
         let view = json!({"mainCountry": "us", "countries": [c("us"), c("de")]});
         let main = shape(view.clone(), None);
         assert!(main["countries"][0]["top10"].is_array());
         assert_eq!(main["countries"][1]["rankings"], 40);
         assert_eq!(main["countries"][1]["issues"], 2);
+        assert_eq!(main["countries"][1]["winnableStatus"], "none_winnable");
         assert!(main["countries"][1].get("top10").is_none());
         let de = shape(view, Some("DE"));
         assert!(de["countries"][1]["top10"].is_array() && de["countries"][0].get("top10").is_none());

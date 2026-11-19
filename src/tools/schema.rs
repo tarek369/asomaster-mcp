@@ -40,6 +40,10 @@ pub fn integer(desc: &str, min: i64, max: i64) -> Value {
     json!({ "type": "integer", "description": desc, "minimum": min, "maximum": max })
 }
 
+pub fn nullable_integer(desc: &str, min: i64, max: i64) -> Value {
+    json!({ "type": ["integer", "null"], "description": desc, "minimum": min, "maximum": max })
+}
+
 pub fn enumeration(values: &[&str], desc: &str) -> Value {
     json!({ "type": "string", "enum": values, "description": desc })
 }

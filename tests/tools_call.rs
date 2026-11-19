@@ -788,6 +788,26 @@ async fn change_impact_reads_from_the_app_with_the_window_asked_for() {
 }
 
 #[tokio::test]
+async fn dashboard_and_app_insights_read_from_the_app_with_a_weekly_trend() {
+    let trend: Vec<Value> = (0..91).map(|i| json!({"day": i, "visibility": 40, "top10": 3, "phrases": 9})).collect();
+    let app = FakeApp::start(move |m, p| match m {
+        "get_dashboard" => Reply::Ok(json!({"periods": [7, 30, 90], "apps": [{"projectId": "4", "trend": trend.clone()}]})),
+        "get_app_insights" => Reply::Ok(json!({"projectId": p["projectId"], "days": p["days"], "trend": [], "nearTop": [{"phrase": "rain", "rank": 12}]})),
+        _ => default_reply(m, p),
+    })
+    .await;
+    let (is_error, payload) = call_tool(&app.server(), "get_dashboard", json!({})).await;
+    assert!(!is_error, "{payload}");
+    assert_eq!(payload["apps"][0]["trend"].as_array().map(Vec::len), Some(13));
+    let (is_error, payload) = call_tool(&app.server(), "get_app_insights", json!({"projectId": "4", "days": 30})).await;
+    assert!(!is_error, "{payload}");
+    assert_eq!((payload["days"].clone(), payload["nearTop"][0]["rank"].clone()), (json!(30), json!(12)));
+    let (is_error, _) = call_tool(&app.server(), "get_app_insights", json!({"projectId": "4", "days": 14})).await;
+    assert!(is_error, "only 7 or 30 days");
+    assert!(app.actions().is_empty(), "read-only");
+}
+
+#[tokio::test]
 async fn get_audit_reads_from_the_app() {
     let app = FakeApp::start(|m, p| match m {
         "get_audit" => Reply::Ok(json!({"total": 61, "projectId": p["projectId"], "mainCountry": "us", "countries": [

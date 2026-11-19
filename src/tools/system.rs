@@ -30,6 +30,7 @@ fn settings_schema() -> Value {
         vec![
             ("theme", s::enumeration(&["system", "light", "dark"], "UI theme.")),
             ("checkSchedule", schedule),
+            ("checkHour", s::nullable_integer("Local hour (0-23) automatic checks start at; null spreads them across the day.", 0, 23)),
             ("checkSpeed", s::enumeration(&["normal", "fast"], "Store request pacing (fast risks throttling).")),
             ("parallelApps", s::integer("Projects checked at the same time.", 1, 4)),
             ("defaultMarkets", s::object(

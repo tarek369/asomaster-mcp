@@ -8,6 +8,7 @@
 mod audit;
 mod connections;
 mod impact;
+mod overview;
 mod jobs;
 mod keywords;
 mod optimizer;
@@ -164,6 +165,7 @@ impl Registry {
         let tools: Vec<Tool> = [
             read::tools(),
             impact::tools(),
+            overview::tools(),
             search_terms::tools(),
             audit::tools(),
             projects::tools(),
@@ -255,6 +257,9 @@ async fn run_custom(bridge: &Bridge, name: &str, args: &Value) -> Result<Value, 
         return r;
     }
     if let Some(r) = impact::run(bridge, name, args).await {
+        return r;
+    }
+    if let Some(r) = overview::run(bridge, name, args).await {
         return r;
     }
     if let Some(r) = search_terms::run(bridge, name, args).await {

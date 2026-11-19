@@ -16,10 +16,10 @@ const UPLOAD_CALL_TIMEOUT: Duration = Duration::from_secs(150);
 
 const UPLOAD: Annotations = Annotations { read_only: false, destructive: true, idempotent: false, open_world: true };
 
-const DEVICES: &[&str] = &["iphone", "iphone_65", "ipad", "ipad_129", "ipad_11", "mac", "watch", "phone", "tablet", "feature"];
+const DEVICES: &[&str] = &["iphone", "iphone_63", "iphone_65", "iphone_duo", "ipad", "ipad_129", "ipad_11", "mac", "watch", "header", "search_result", "phone", "tablet", "feature"];
 const LAYOUTS: &[&str] = &["centered", "bleed", "zoomed", "duo", "tilted"];
 /// Devices the stores also take in landscape.
-const ROTATING: &[&str] = &["iphone", "iphone_65", "ipad", "ipad_129", "ipad_11", "phone", "tablet"];
+const ROTATING: &[&str] = &["iphone", "iphone_63", "iphone_65", "iphone_duo", "ipad", "ipad_129", "ipad_11", "phone", "tablet"];
 
 fn color(desc: &str) -> Value {
     json!({ "type": "string", "pattern": "^#[0-9a-fA-F]{6}$", "description": desc })
@@ -95,7 +95,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::action(
             "screenshots_set_theme",
             "Set the screenshot theme",
-            "Change the look shared by every slide (any subset): background, backgroundEnd (null = solid), backgroundAngle, textColor, accent (highlighted words), font (inter, poppins, playfair, nunito, barlow), caps, position (top, bottom), frame (none, dark, light), layout, textSize; and/or the devices to render in store order; and/or `landscape`, the devices drawn in landscape (iPhone 2868×1320, iPhone 6.5″ 2778×1284, iPad 13″ 2752×2064, iPad 12.9″ 2732×2048, iPad 11″ 2388×1668, Play phone 1920×1080, Play 10″ tablet 2560×1600; [] = all portrait; Mac, Watch and the feature graphic have one shape). Then render with screenshots_render.",
+            "Change the look shared by every slide (any subset): background, backgroundEnd (null = solid), backgroundAngle, textColor, accent (highlighted words), font (inter, poppins, playfair, nunito, barlow), caps, position (top, bottom), frame (none, dark, light), layout, textSize; and/or the devices to render in store order; and/or `landscape`, the devices drawn in landscape (iPhone 2868×1320, iPhone 6.3″ 2622×1206, iPhone 6.5″ 2778×1284, iPhone Duo 2853×2007, iPad 13″ 2752×2064, iPad 12.9″ 2732×2048, iPad 11″ 2388×1668, Play phone 1920×1080, Play 10″ tablet 2560×1600; [] = all portrait; Mac, Watch, the feature graphic and the iOS 27 header (3840×1646) and search result (3840×2560) images have one shape; on the App Store the Duo, header and search result upload through App Store Connect's asset library and Apple reviews them with the version). Then render with screenshots_render.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
@@ -118,8 +118,8 @@ pub fn tools() -> Vec<Tool> {
                             &[],
                         ),
                     ),
-                    ("devices", s::array(s::enumeration(DEVICES, "Device."), "Devices to render.", 1, 10)),
-                    ("landscape", s::array(s::enumeration(ROTATING, "Device."), "Devices drawn in landscape (the rest portrait).", 0, 7)),
+                    ("devices", s::array(s::enumeration(DEVICES, "Device."), "Devices to render.", 1, DEVICES.len() as u64)),
+                    ("landscape", s::array(s::enumeration(ROTATING, "Device."), "Devices drawn in landscape (the rest portrait).", 0, ROTATING.len() as u64)),
                 ],
                 &["projectId"],
             ),
@@ -174,7 +174,7 @@ pub fn tools() -> Vec<Tool> {
         Tool::custom(
             "screenshots_upload",
             "Upload screenshots to the store",
-            "LIVE: replaces the screenshots of the editable App Store version or the Play listing with the rendered set (unchanged sets are skipped; nothing is submitted for review). `locales` uploads only those languages (e.g. just the main one; only their screenshots must be rendered) and leaves the others as they are in the store. Only call after the owner has seen the screenshots and told you to upload them in this conversation. The app then shows the owner a confirmation dialog; nothing is sent unless they approve there (no answer in ~5 minutes = denied, error not_approved). dryRun checks everything without changing the store and needs no dialog. Background job; follow with wait_for_jobs.",
+            "LIVE: replaces the screenshots of the editable App Store version or the Play listing with the rendered set (unchanged sets are skipped; nothing is submitted for review). On the App Store the iPhone Duo screenshots and the iOS 27 header and search result images go into the app's asset library and are placed on the editable version where App Store Connect offers them there; Apple reviews them with that version. `locales` uploads only those languages (e.g. just the main one; only their screenshots must be rendered) and leaves the others as they are in the store. Only call after the owner has seen the screenshots and told you to upload them in this conversation. The app then shows the owner a confirmation dialog; nothing is sent unless they approve there (no answer in ~5 minutes = denied, error not_approved). dryRun checks everything without changing the store and needs no dialog. Background job; follow with wait_for_jobs.",
             s::object(
                 vec![
                     ("projectId", s::project_id()),
